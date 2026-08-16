@@ -2,17 +2,7 @@ import { getStore } from "@netlify/blobs";
 
 const FAMILY = ["Parker", "Blake", "Porter"];
 const ALLOWED_VOTES = new Set(["yes", "maybe", "no"]);
-const SHOW_IDS = [
-  "monsters-of-god",
-  "breath-of-fire",
-  "ufo-documentary",
-  "i-am-chris-farley",
-  "behind-the-curve",
-  "cruella",
-  "futurama",
-  "always-sunny",
-  "abbott-elementary",
-];
+const SAFE_SHOW_ID = /^[a-z0-9][a-z0-9-]{1,119}$/;
 
 const json = (data, status = 200) =>
   Response.json(data, {
@@ -22,14 +12,21 @@ const json = (data, status = 200) =>
     },
   });
 
+function requestedShowIds(req) {
+  const url = new URL(req.url);
+  const raw = url.searchParams.get("showIds") || "";
+  return [...new Set(raw.split(",").map((id) => id.trim()).filter((id) => SAFE_SHOW_ID.test(id)))].slice(0, 150);
+}
+
 export default async (req) => {
   const store = getStore("couchsloth-family-votes");
 
   if (req.method === "GET") {
+    const showIds = requestedShowIds(req);
     const familyEntries = await Promise.all(
       FAMILY.map(async (user) => {
         const voteEntries = await Promise.all(
-          SHOW_IDS.map(async (showId) => {
+          showIds.map(async (showId) => {
             const vote = await store.get(
               `votes/${user.toLowerCase()}/${showId}`,
               { type: "text", consistency: "strong" },
@@ -57,7 +54,7 @@ export default async (req) => {
     if (!FAMILY.includes(user)) {
       return json({ error: "Unknown family member" }, 400);
     }
-    if (!SHOW_IDS.includes(showId)) {
+    if (!SAFE_SHOW_ID.test(String(showId || ""))) {
       return json({ error: "Unknown show" }, 400);
     }
     if (!ALLOWED_VOTES.has(vote)) {
