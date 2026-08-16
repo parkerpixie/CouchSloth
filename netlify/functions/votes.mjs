@@ -2,6 +2,17 @@ import { getStore } from "@netlify/blobs";
 
 const FAMILY = ["Parker", "Blake", "Porter"];
 const ALLOWED_VOTES = new Set(["yes", "maybe", "no"]);
+const SHOW_IDS = [
+  "monsters-of-god",
+  "breath-of-fire",
+  "ufo-documentary",
+  "i-am-chris-farley",
+  "behind-the-curve",
+  "cruella",
+  "futurama",
+  "always-sunny",
+  "abbott-elementary",
+];
 
 const json = (data, status = 200) =>
   Response.json(data, {
@@ -15,18 +26,23 @@ export default async (req) => {
   const store = getStore("couchsloth-family-votes");
 
   if (req.method === "GET") {
-    const entries = await Promise.all(
+    const familyEntries = await Promise.all(
       FAMILY.map(async (user) => {
-        const userVotes =
-          (await store.get(`votes/${user.toLowerCase()}`, {
-            type: "json",
-            consistency: "strong",
-          })) || {};
-        return [user, userVotes];
+        const voteEntries = await Promise.all(
+          SHOW_IDS.map(async (showId) => {
+            const vote = await store.get(
+              `votes/${user.toLowerCase()}/${showId}`,
+              { type: "text", consistency: "strong" },
+            );
+            return vote ? [showId, vote] : null;
+          }),
+        );
+
+        return [user, Object.fromEntries(voteEntries.filter(Boolean))];
       }),
     );
 
-    return json({ votes: Object.fromEntries(entries) });
+    return json({ votes: Object.fromEntries(familyEntries) });
   }
 
   if (req.method === "POST") {
@@ -41,21 +57,15 @@ export default async (req) => {
     if (!FAMILY.includes(user)) {
       return json({ error: "Unknown family member" }, 400);
     }
-    if (typeof showId !== "string" || !showId.trim()) {
-      return json({ error: "Missing show ID" }, 400);
+    if (!SHOW_IDS.includes(showId)) {
+      return json({ error: "Unknown show" }, 400);
     }
     if (!ALLOWED_VOTES.has(vote)) {
       return json({ error: "Vote must be yes, maybe, or no" }, 400);
     }
 
-    const key = `votes/${user.toLowerCase()}`;
-    const userVotes =
-      (await store.get(key, { type: "json", consistency: "strong" })) || {};
-
-    userVotes[showId] = vote;
-    await store.setJSON(key, userVotes);
-
-    return json({ ok: true, user, userVotes });
+    await store.set(`votes/${user.toLowerCase()}/${showId}`, vote);
+    return json({ ok: true, user, showId, vote });
   }
 
   return json({ error: "Method not allowed" }, 405);
