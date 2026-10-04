@@ -1,4 +1,5 @@
 import { ApiError, database, reply } from './_shared/database.mts';
+import { runTmdbBatch } from './_shared/tmdb-batch.mts';
 
 function text(value: unknown, max: number, required = false): string {
   if (value != null && typeof value !== 'string') throw new ApiError('Please enter text in that field.');
@@ -45,7 +46,7 @@ async function requireTitle(id: string) {
   if (!rows.length) throw new ApiError('That title could not be found.', 404);
 }
 
-export default async (req: Request) => {
+export default async (req: Request, context: any) => {
   try {
     if (req.method === 'GET') {
       const profiles = await database('profiles?select=id,name&order=created_at.asc');
@@ -56,6 +57,9 @@ export default async (req: Request) => {
         titles.push(...page);
         if (page.length < 500) break;
         offset += 500;
+      }
+      if (titles.some((title: any) => (title.tmdb_match_status || 'pending') === 'pending' && !title.tmdb_id)) {
+        context.waitUntil(runTmdbBatch(12));
       }
       return reply({ profiles, titles, dataSource: 'supabase' });
     }
