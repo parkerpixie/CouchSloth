@@ -1,5 +1,5 @@
 import { ApiError, database, reply } from './_shared/database.mts';
-import { applyTmdbMatch, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './_shared/tmdb.mts';
+import { applyTmdbMatch, checkTmdbConnection, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './_shared/tmdb.mts';
 
 
 function text(value: unknown, max = 120) {
@@ -65,6 +65,9 @@ async function autoMatch(id: string) {
 
 export default async (req: Request) => {
   try {
+    if (req.method === 'GET') {
+      return reply({ ok: true, tmdbConnected: await checkTmdbConnection() });
+    }
     if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405);
 
     const raw = await req.text();
