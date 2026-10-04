@@ -15,5 +15,5 @@
 .tmdb-candidate small{margin:3px 0 7px;color:var(--muted);font-size:.68rem}
 .tmdb-candidate p{margin:0 0 10px;color:var(--muted);font-size:.72rem;line-height:1.4}
 .tmdb-candidate .secondary{padding:8px 10px;font-size:.68rem}
-.tmdb-credit{display:block;max-width:420px;line-height:1.35}
+.tmdb-credit{display:flex;align-items:center;gap:7px;max-width:420px;line-height:1.35}.tmdb-credit img{width:24px;height:24px;object-fit:contain;flex:0 0 auto}
 @media(max-width:520px){.artwork-match{grid-template-columns:70px 1fr}.artwork-match>img,.tmdb-placeholder.large{width:70px}.tmdb-candidate{grid-template-columns:58px 1fr}.tmdb-candidate img{width:58px}}
