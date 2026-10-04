@@ -27,7 +27,7 @@ On the existing Netlify project, create these environment variables scoped to Fu
 - `SUPABASE_SECRET_KEY`: a Supabase secret key beginning `sb_secret_`.
 - `TMDB_ACCESS_TOKEN`: the TMDB API Read Access Token, or `TMDB_API_KEY`: the v3 API key. Couch Sloth accepts either credential. Keep either one server-side and secret.
 
-Never use a `VITE_` prefix for the secret key. Save changes and redeploy to activate them. Missing configuration produces an explicit error and cannot result in a successful-save message.
+Never use a `VITE_` prefix for the secret key. Save changes and redeploy to activate them. Environment-variable changes require a new production deploy before Functions can read the new values. Missing configuration produces an explicit error and cannot result in a successful-save message.
 
 Schema migrations are in `supabase/migrations/`. The legacy seed and Fall 2026 master-list import are both preserved there. TMDB enrichment stores the matched TMDB ID/media type, poster, backdrop, runtime, match status, and last-check timestamp. Existing custom additions are saved for their original adding profile. No watched status is inferred from legacy votes. The old Blobs stores were not deleted.
 
