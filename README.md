@@ -25,7 +25,7 @@ On the existing Netlify project, create these environment variables scoped to Fu
 
 - `SUPABASE_URL`: the CouchSloth Supabase project URL.
 - `SUPABASE_SECRET_KEY`: a Supabase secret key beginning `sb_secret_`.
-- `TMDB_ACCESS_TOKEN`: the TMDB API Read Access Token. Keep it server-side and secret.
+- `TMDB_ACCESS_TOKEN`: the TMDB API Read Access Token, or `TMDB_API_KEY`: the v3 API key. Couch Sloth accepts either credential. Keep either one server-side and secret.
 
 Never use a `VITE_` prefix for the secret key. Save changes and redeploy to activate them. Missing configuration produces an explicit error and cannot result in a successful-save message.
 
