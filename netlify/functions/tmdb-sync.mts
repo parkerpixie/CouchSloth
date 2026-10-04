@@ -4,8 +4,8 @@ import { applyTmdbMatch, getTitle, recommendTmdb, recordTmdbReview, searchTmdb }
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
 export default async () => {
-  if (!Netlify.env.get('TMDB_ACCESS_TOKEN')) {
-    console.log('Couch Sloth TMDB sync skipped: TMDB_ACCESS_TOKEN is not configured.');
+  if (!Netlify.env.get('TMDB_ACCESS_TOKEN') && !Netlify.env.get('TMDB_API_KEY')) {
+    console.log('Couch Sloth TMDB sync skipped: no TMDB credential is configured.');
     return;
   }
 
