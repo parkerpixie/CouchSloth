@@ -1,771 +1,141 @@
-import "./styles.css";
-import "./add-show.css";
-
-import slothBlanket from "../Assets/Sloth on Couch with Blanket.png";
-import slothPopcorn from "../Assets/Sloth on Beanbag with popcorn.png";
-import slothPeek from "../Assets/Sloth behind the couch.png";
-
-import posterMonsters from "../Assets/Monsters of God.jpg";
-import posterBreath from "../Assets/Breath of Fire.jpeg";
-import posterArea51 from "../Assets/Area 51-Aliens, UFOs, Bob Lazar, etc..jpeg";
-import posterFarley from "../Assets/I am Chris Farley.jpeg";
-import posterCurve from "../Assets/Beyond the Curve.jpeg";
-import posterCruella from "../Assets/Cruella.jpeg";
-import posterFuturama from "../Assets/Futurama.jpeg";
-import posterSunny from "../Assets/It's Always Sunny in Philadelphia.jpeg";
-import posterAbbott from "../Assets/Abbott Elementary.jpeg";
-
-const FAMILY = ["Parker", "Blake", "Porter"];
-
-const BASE_SHOWS = [
-  {
-    id: "monsters-of-god",
-    title: "Monsters of God",
-    platform: "HBO Max",
-    type: "Documentary",
-    format: "5-part documentary series",
-    note: "Eric Goode follows the obsessive, high-stakes world of exotic reptile collecting and the illegal wildlife trade, where rare animals, huge money, smugglers, and law enforcement collide.",
-    icon: "🐍",
-    theme: "snake",
-    image: posterMonsters,
-  },
-  {
-    id: "breath-of-fire",
-    title: "Breath of Fire",
-    platform: "HBO Max",
-    type: "Documentary",
-    format: "Docuseries",
-    note: "A revealing look at the rise of Kundalini yoga in the United States, the movement around Yogi Bhajan, and the complicated legacy surrounding one of its most prominent leaders.",
-    icon: "🔥",
-    theme: "fire",
-    image: posterBreath,
-  },
-  {
-    id: "ufo-documentary",
-    title: "Area 51: Aliens, UFOs, Bob Lazar & Advanced Technology",
-    platform: "Prime Video",
-    type: "Documentary",
-    format: "Documentary film",
-    note: "A short dive into Bob Lazar's Area 51 claims, UFO sightings, alleged recovered craft, Element 115, government secrecy, and the advanced technology rumored to be hidden in the Nevada desert.",
-    icon: "🛸",
-    theme: "ufo",
-    image: posterArea51,
-  },
-  {
-    id: "i-am-chris-farley",
-    title: "I Am Chris Farley",
-    platform: "Prime Video",
-    type: "Documentary",
-    format: "Documentary film",
-    note: "Friends, family, and fellow comedians remember Chris Farley's life, enormous comic talent, unforgettable characters, and the person behind all that glorious physical comedy.",
-    icon: "🎙️",
-    theme: "farley",
-    image: posterFarley,
-  },
-  {
-    id: "behind-the-curve",
-    title: "Behind the Curve",
-    platform: "Prime Video",
-    type: "Documentary",
-    format: "Documentary film",
-    note: "A funny, fascinating look inside the modern flat-Earth community, including the believers trying to prove their case and the experiments that do not always cooperate with the theory.",
-    icon: "🌎",
-    theme: "curve",
-    image: posterCurve,
-  },
-  {
-    id: "cruella",
-    title: "Cruella",
-    platform: "Disney+",
-    type: "Movie",
-    format: "Feature film",
-    note: "In 1970s punk-rock London, ambitious young designer Estella clashes with fashion legend Baroness von Hellman and begins transforming into the spectacularly rebellious Cruella de Vil.",
-    icon: "🖤",
-    theme: "cruella",
-    image: posterCruella,
-  },
-  {
-    id: "futurama",
-    title: "Futurama",
-    platform: "Disney+",
-    type: "Series",
-    format: "Animated comedy series",
-    note: "Pizza delivery guy Philip J. Fry wakes up a thousand years in the future and joins the Planet Express crew for intergalactic deliveries, robot nonsense, aliens, romance, and beautifully nerdy science jokes.",
-    icon: "🚀",
-    theme: "futurama",
-    image: posterFuturama,
-  },
-  {
-    id: "always-sunny",
-    title: "It's Always Sunny in Philadelphia",
-    platform: "Disney+",
-    type: "Series",
-    format: "Comedy series",
-    note: "Five wildly selfish owners of a struggling Philadelphia bar repeatedly hatch terrible plans, betray one another, and somehow make every possible situation much, much worse.",
-    icon: "☀️",
-    theme: "sunny",
-    image: posterSunny,
-  },
-  {
-    id: "abbott-elementary",
-    title: "Abbott Elementary",
-    platform: "Disney+",
-    type: "Series",
-    format: "Workplace comedy series",
-    note: "A group of dedicated teachers and one spectacularly self-confident principal navigate an underfunded Philadelphia public school while doing their best for the kids who keep them coming back.",
-    icon: "✏️",
-    theme: "abbott",
-    image: posterAbbott,
-  },
-];
-
-let SHOWS = [...BASE_SHOWS];
-const app = document.querySelector("#app");
-const savedUser = localStorage.getItem("couchsloth-user");
-const savedPending = JSON.parse(localStorage.getItem("couchsloth-pending") || "[]");
-
-const state = {
-  user: FAMILY.includes(savedUser) ? savedUser : null,
-  tab: "vote",
-  votes: Object.fromEntries(FAMILY.map((name) => [name, {}])),
-  pending: Array.isArray(savedPending) ? savedPending : [],
-  syncing: true,
-  syncError: false,
-  pickedShow: null,
-  picking: false,
-  addOpen: false,
-  addSaving: false,
-};
-
-const voteLabels = { yes: "YES", maybe: "MAYBE", no: "NO" };
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+import './styles.css';
+import { STATUS, INTENT, MOODS, todayKey, displayDate, progressFor, isAvailable, releases, chooseCandidates, escapeHtml as h, safeImage } from './domain.js';
+import sloth from '../Assets/Sloth on Beanbag with popcorn.png';
+import monsters from '../Assets/Monsters of God.jpg';
+import breath from '../Assets/Breath of Fire.jpeg';
+import area51 from '../Assets/Area 51-Aliens, UFOs, Bob Lazar, etc..jpeg';
+import farley from '../Assets/I am Chris Farley.jpeg';
+import curve from '../Assets/Beyond the Curve.jpeg';
+import cruella from '../Assets/Cruella.jpeg';
+import futurama from '../Assets/Futurama.jpeg';
+import sunny from "../Assets/It's Always Sunny in Philadelphia.jpeg";
+import abbott from '../Assets/Abbott Elementary.jpeg';
+const posters={'monsters-of-god':monsters,'breath-of-fire':breath,'ufo-documentary':area51,'i-am-chris-farley':farley,'behind-the-curve':curve,cruella,futurama,'always-sunny':sunny,'abbott-elementary':abbott};
+const profiles=[{id:'parker',name:'Parker'},{id:'blake',name:'Blake'},{id:'porter',name:'Porter'}];
+function storedProfile(){try{return localStorage.getItem('couchsloth-profile')||localStorage.getItem('couchsloth-user')?.toLowerCase();}catch{return null;}}
+const stored=storedProfile();
+let loadVersion=0;
+const state={profile:profiles.some(p=>p.id===stored)?stored:null,profiles,titles:[],loading:true,error:'',connected:false,tab:'home',viewing:null,status:'watchlist',search:'',type:'all',service:'all',modal:null,draft:null,busy:false,message:'',picked:null,pickMessage:'',pick:{mood:'any',commitment:'any',pool:'library',audience:stored?[stored]:['parker']}};
+const app=document.querySelector('#app');
+const name=()=>state.profiles.find(p=>p.id===state.profile)?.name||'Parker';
+const titleById=id=>state.titles.find(t=>t.id===id);
+const icon=t=>t==='Movie'?'🎬':t==='Documentary'?'🔎':'📺';
+const options=(map,selected)=>Object.entries(map).map(([id,label])=>`<option value="${id}" ${id===selected?'selected':''}>${h(label)}</option>`).join('');
+function service(t){return t.streaming_availability?.find(a=>a.region==='US'&&a.status==='available')?.provider||(t.legacy_platform&&t.legacy_platform!=='Family pick'?`${t.legacy_platform} · unconfirmed`:'Streaming service unconfirmed');}
+async function load(quiet=false){
+  if(state.busy)return false;
+  const version=++loadVersion;
+  if(!quiet){state.loading=true;render();}
+  try{
+    const response=await fetch('/api/library',{cache:'no-store'});const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'The library could not load.');
+    if(version!==loadVersion)return false;
+    state.titles=result.titles;state.profiles=profiles.map(p=>result.profiles.find(x=>x.id===p.id)||p);state.connected=true;state.error='';
+  }catch(error){if(version!==loadVersion)return false;state.error=error.message||'Could not connect. Please retry.';state.connected=false;}
+  state.loading=false;if(!quiet||!state.modal)render();return state.connected;
 }
-
-function persistPending() {
-  localStorage.setItem("couchsloth-pending", JSON.stringify(state.pending));
+function setBusy(busy){state.busy=busy;document.querySelectorAll('.modal button,.modal input,.modal textarea,.modal select').forEach(el=>el.disabled=busy);}
+async function save(data){
+  if(state.busy)return false;++loadVersion;setBusy(true);state.message='';
+  try{
+    const response=await fetch('/api/library',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...data,profileId:state.profile})});const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'That change did not save.');
+    setBusy(false);state.message='Saved to your couch. ✓';await load(true);render();return true;
+  }catch(error){setBusy(false);state.message=error.message||'That change did not save. Please retry.';const message=document.querySelector('.form-message');if(message)message.textContent=state.message;return false;}
 }
-
-function overlayPendingVotes() {
-  state.pending.forEach(({ user, showId, vote }) => {
-    if (state.votes[user]) state.votes[user][showId] = vote;
+function empty(copy,action=''){return `<div class="empty-state"><span>🦥</span><p>${copy}</p>${action}</div>`;}
+function card(t){
+  const img=posters[t.id]||safeImage(t.poster_url);const progress=progressFor(t,state.viewing||state.profile);const saved=t.watch_progress?.map(p=>state.profiles.find(x=>x.id===p.profile_id)?.name).filter(Boolean)||[];
+  return `<button class="title-card" data-title="${h(t.id)}"><div class="poster">${img?`<img src="${h(img)}" alt="" loading="lazy">`:`<span>${icon(t.type)}</span>`}${progress?`<span class="status-pill">${STATUS[progress.status]}</span>`:''}</div><div class="card-copy"><small>${h(t.type)}</small><h3>${h(t.title)}</h3><p>${h(service(t))}</p>${saved.length?`<small class="saved-by">Saved by ${h(saved.join(', '))}</small>`:''}</div></button>`;
+}
+function shelf(label,copy,titles,none){return `<section class="shelf"><div class="section-heading"><div><h2>${label}</h2><p>${copy}</p></div><span>${titles.length}</span></div>${titles.length?`<div class="title-grid">${titles.map(card).join('')}</div>`:empty(none)}</section>`;}
+function home(){
+  const today=todayKey(),end=new Date(`${today}T12:00:00`),start=new Date(`${today}T12:00:00`);end.setDate(end.getDate()+7);start.setDate(start.getDate()-14);const events=releases(state.titles);const unique=items=>[...new Map(items.map(e=>[e.title.id,e.title])).values()];
+  return `<section class="hero"><div><p class="eyebrow">YOUR NEXT GOOD WATCH</p><h1>A little less scrolling.<br>A little more couch.</h1><p>Welcome back, ${h(name())}. Save the good stuff, keep your place, and let the sloth handle the indecision.</p><button class="primary" data-go="pick">Help me pick something ↗</button></div><img src="${sloth}" alt="A cozy sloth enjoying popcorn"></section>
+  ${shelf('Continue Watching','Right where you left off.',state.titles.filter(t=>progressFor(t,state.profile)?.status==='watching'),'Mark a saved title as Watching to find it here.')}
+  ${shelf('Available Now','U.S. availability recorded in your library.',state.titles.filter(t=>isAvailable(t,today)),'Streaming availability has not been added yet. Open a title to record where you can watch it.')}
+  ${shelf('Just Released','Recorded releases from the last two weeks.',unique(events.filter(e=>e.date>=todayKey(start)&&e.date<=today)),'No recent release dates recorded yet.')}
+  ${shelf('Coming This Week','Something to look forward to.',unique(events.filter(e=>e.date>today&&e.date<=todayKey(end))),'No releases recorded for the next seven days.')}
+  ${shelf('Explore the Library','Save something for yourself—or see who else has it on their list.',state.titles,'Tap + Add to capture your first recommendation.')}`;
+}
+function coming(){
+  const services=[...new Set(state.titles.flatMap(t=>t.streaming_availability?.map(a=>a.provider)||[]))].sort();const titles=state.titles.filter(t=>(state.type==='all'||state.type===t.type)&&(state.service==='all'||t.streaming_availability?.some(a=>a.provider===state.service&&a.region==='US')));
+  const events=releases(titles).filter(e=>e.date>=todayKey()&&(state.service==='all'||!e.provider||e.provider===state.service));const undated=titles.filter(t=>t.streaming_availability?.some(a=>a.region==='US'&&a.status==='upcoming'&&!a.release_date&&(state.service==='all'||a.provider===state.service)));
+  return `<div class="page-heading"><p class="eyebrow">A DATE WITH YOUR COUCH</p><h1>Coming Soon</h1><p>The releases you want to remember, in date order.</p></div><div class="filters"><label>Type<select data-filter="type">${options({all:'Everything',Series:'Series',Movie:'Movie',Documentary:'Documentary'},state.type)}</select></label><label>Service<select data-filter="service"><option value="all">All services</option>${services.map(s=>`<option ${state.service===s?'selected':''} value="${h(s)}">${h(s)}</option>`).join('')}</select></label></div>${events.length?`<div class="timeline">${events.map(e=>`<button class="release-row" data-title="${h(e.title.id)}"><time>${displayDate(e.date)}</time><div><h3>${h(e.title.title)}</h3><p>${h(e.label)} · ${e.source==='manual'?'Manually recorded':'Source recorded'}</p></div><span>↗</span></button>`).join('')}</div>`:empty('No upcoming dates recorded yet. Open a title to add season or streaming release details.')}${undated.length?shelf('Date Not Announced','Upcoming, with the date still to come.',undated,''):''}`;
+}
+function stuff(){
+  const viewing=state.viewing||state.profile;const titles=state.titles.filter(t=>progressFor(t,viewing)?.status===state.status&&t.title.toLowerCase().includes(state.search.toLowerCase()));
+  return `<div class="page-heading"><p class="eyebrow">THE GOOD STUFF, SAVED</p><h1>My Stuff</h1><p>Your list, your place. Peek at what the rest of the couch is saving.</p></div><div class="profile-tabs">${state.profiles.map(p=>`<button data-view="${p.id}" class="${viewing===p.id?'selected':''}">${p.name}${p.id===state.profile?' · you':''}</button>`).join('')}</div><div class="status-tabs">${Object.entries(STATUS).map(([id,label])=>`<button data-status="${id}" class="${state.status===id?'selected':''}">${label}<span>${state.titles.filter(t=>progressFor(t,viewing)?.status===id).length}</span></button>`).join('')}</div><label class="search-field"><span class="sr-only">Search saved titles</span><input id="saved-search" placeholder="Find something you saved…" value="${h(state.search)}"></label>${viewing!==state.profile?`<p class="helper">Viewing ${h(state.profiles.find(p=>p.id===viewing)?.name)}’s list. Changes are saved for ${h(name())}.</p>`:''}${titles.length?`<div class="title-grid">${titles.map(card).join('')}</div>`:empty(`Nothing in ${STATUS[state.status]}${state.search?' matching that search':' yet'}.`,'<button class="secondary" data-go="home">Explore the library</button>')}`;
+}
+function pick(){
+  const picked=titleById(state.picked);
+  return `<div class="page-heading"><p class="eyebrow">DECISION FATIGUE, MEET SLOTH</p><h1>Sloth Pick</h1><p>A few little clues. One less decision.</p></div><section class="pick-panel"><div class="form-grid"><label>The mood<select data-pick="mood">${options({any:'Surprise me',...MOODS},state.pick.mood)}</select></label><label>The commitment<select data-pick="commitment">${options({any:'Anything goes',short:'35 minutes or less',episodes:'A couple of episodes',movie:'Movie night'},state.pick.commitment)}</select></label><label>Choose from<select data-pick="pool">${options({library:'Library · services may be unconfirmed',saved:'Our saved titles · services may be unconfirmed',available:'Available Now only'},state.pick.pool)}</select></label></div><fieldset><legend>Who’s on the couch?</legend><div class="audience">${state.profiles.map(p=>`<label><input type="checkbox" data-audience="${p.id}" ${state.pick.audience.includes(p.id)?'checked':''}> ${p.name}</label>`).join('')}</div></fieldset><div class="pick-buttons"><button class="primary" data-pick-action="match">Pick for this mood ✦</button><button class="secondary" data-pick-action="chaos">🎲 Full Chaos</button></div><p class="helper">Finished and Caught Up titles are excluded for selected viewers. Full Chaos skips mood and time filters. Specific filters need matching tags or runtime data.</p></section>${picked?`<section class="pick-result"><p class="eyebrow">THE SLOTH HAS A SUGGESTION</p><h2>${h(picked.title)}</h2><p>${h(service(picked))}</p><p>${h(picked.description)}</p><button class="primary" data-title="${h(picked.id)}">See details & save</button></section>`:state.pickMessage?empty(h(state.pickMessage)):`<div class="quiet-sloth"><img src="${sloth}" alt="A sloth ready to choose"><p>Let’s find your next good watch.</p></div>`}`;
+}
+function welcome(){return `<div class="welcome"><img src="${sloth}" alt="A sloth with popcorn"><p class="eyebrow">MAKE YOURSELF COMFORTABLE</p><h1>Couch Sloth</h1><p>A home for the things you want to watch.<br>Whose list are we opening?</p><div class="profile-tabs">${state.profiles.map(p=>`<button data-profile="${p.id}">${p.name}</button>`).join('')}</div><small>A shared family library, with separate lists and watched progress.</small></div>`;}
+function details(t){
+  if(!t)return '<h2>Refresh your library</h2><p>This title was saved, but the latest library could not be loaded. Close this panel and retry the connection.</p>';
+  const p=progressFor(t,state.profile);const seasons=[...(t.seasons||[])].sort((a,b)=>a.season_number-b.season_number);
+  return `<p class="eyebrow">${h(t.type)}</p><h2>${h(t.title)}</h2><p>${h(t.description||'Your next discovery starts here.')}</p><p class="helper">${h(service(t))}</p><form data-form="progress"><input type="hidden" name="titleId" value="${h(t.id)}"><h3>${h(name())}’s progress</h3><div class="form-grid"><label>Status<select name="status">${options(STATUS,p?.status||'watchlist')}</select></label><label>Track<select name="trackingIntent">${options(INTENT,p?.tracking_intent||'all')}</select></label></div><button class="primary">${p?'Save progress':`Save for ${h(name())}`}</button></form>
+  <section class="detail-section"><h3>Seasons</h3><p class="helper">Check off seasons below; choose your overall status separately above.</p>${seasons.length?seasons.map(s=>{const watched=s.season_progress?.some(p=>p.profile_id===state.profile&&p.watched);return `<div class="season-row"><div><strong>Season ${s.season_number}</strong><small>${displayDate(s.release_date)}${s.release_date?' · manually recorded':''}</small></div><button class="${watched?'season-watched':'secondary'}" data-season="${s.id}" data-watched="${!watched}">${watched?'✓ Watched':'Mark watched'}</button></div>`;}).join(''):'<p class="helper">No season records yet. Add the ones you want to track.</p>'}<details><summary>Add or update a season</summary><form data-form="season"><input type="hidden" name="titleId" value="${h(t.id)}"><div class="form-grid"><label>Season number<input name="seasonNumber" type="number" min="1" max="200" required></label><label>Release date · optional<input name="releaseDate" type="date"></label></div><label>Source link · optional<input name="sourceUrl" type="url" placeholder="https://…"></label><button class="secondary">Save season</button></form></details></section>
+  <section class="detail-section"><h3>Where to watch</h3>${t.streaming_availability?.length?t.streaming_availability.map(a=>`<div class="availability-row"><strong>${h(a.provider)}</strong><small>${h({available:'Available',upcoming:'Upcoming',unknown:'Unconfirmed'}[a.status])} · ${a.region}${a.release_date?` · ${displayDate(a.release_date)}`:''} · manually recorded</small></div>`).join(''):'<p class="helper">Streaming availability hasn’t been confirmed yet.</p>'}<details><summary>Add or update streaming details</summary><form data-form="availability"><input type="hidden" name="titleId" value="${h(t.id)}"><label>Streaming service<input name="provider" maxlength="120" placeholder="e.g. Netflix" required></label><div class="form-grid"><label>Availability<select name="status">${options({available:'Available now',upcoming:'Coming soon',unknown:'Unconfirmed'},'available')}</select></label><label>Release date · optional<input name="releaseDate" type="date"></label></div><label>Source link · optional<input name="sourceUrl" type="url" placeholder="https://…"></label><button class="secondary">Save streaming details</button></form></details></section>
+  <section class="detail-section"><details><summary>Mood tags &amp; runtime</summary><form data-form="metadata"><input type="hidden" name="titleId" value="${h(t.id)}"><fieldset><legend>Moods</legend><div class="mood-checks">${Object.entries(MOODS).map(([id,label])=>`<label><input type="checkbox" name="moods" value="${id}" ${t.moods?.includes(id)?'checked':''}> ${label}</label>`).join('')}</div></fieldset><label>Runtime in minutes · optional<input name="runtimeMinutes" type="number" min="1" max="600" value="${t.runtime_minutes||''}"></label><button class="secondary">Save mood details</button></form></details></section>
+  <section class="detail-section"><h3>On the family’s lists</h3>${t.watch_progress?.length?t.watch_progress.map(p=>`<p class="family-saved"><strong>${h(state.profiles.find(x=>x.id===p.profile_id)?.name)}</strong><span>${STATUS[p.status]}</span></p>`).join(''):'<p class="helper">Be the first to save this one.</p>'}</section>`;
+}
+function matchesMarkup(titles){return titles.length?`<p class="helper">Already here? Open it and save it to your list.</p>${titles.map(t=>`<button class="existing-match" type="button" data-title="${h(t.id)}">${icon(t.type)} ${h(t.title)} <span>↗</span></button>`).join('')}`:'';}
+function addForm(){
+  const d=state.draft;const matches=d.title?state.titles.filter(t=>t.title.toLowerCase().includes(d.title.toLowerCase())).slice(0,5):[];
+  return `<p class="eyebrow">DON’T LET THE GOOD ONES GET AWAY</p><h2>Add to your couch</h2><p class="helper">Search this library or enter a title manually. TMDB search follows in the next Add upgrade.</p><form data-form="add"><label>Title<input name="title" maxlength="120" value="${h(d.title)}" placeholder="What did your friend recommend?" required autocomplete="off"></label><div id="existing-matches">${matchesMarkup(matches)}</div><div class="form-grid"><label>Type<select name="type">${options({Series:'Series',Movie:'Movie',Documentary:'Documentary'},d.type)}</select></label><label>Track<select name="trackingIntent">${options(INTENT,d.trackingIntent)}</select></label></div><label>A little reminder · optional<textarea name="description" maxlength="4000" placeholder="Who recommended it? What caught your eye?">${h(d.description)}</textarea></label><div class="form-grid"><label>Runtime in minutes · optional<input name="runtimeMinutes" type="number" min="1" max="600" value="${h(d.runtimeMinutes)}"></label><label>Poster URL · optional<input name="posterUrl" type="url" placeholder="https://…" value="${h(d.posterUrl)}"></label></div><fieldset><legend>Mood tags · optional</legend><div class="mood-checks">${Object.entries(MOODS).map(([id,label])=>`<label><input type="checkbox" name="moods" value="${id}" ${d.moods.includes(id)?'checked':''}> ${label}</label>`).join('')}</div></fieldset><p class="helper">Saves to ${h(name())}’s Watchlist. “Already watched some” lets you record watched seasons in title details.</p><button class="primary">Save to my watchlist</button></form>`;
+}
+function modal(){if(!state.modal)return '';return `<div class="modal-overlay"><section class="modal" role="dialog" aria-modal="true" aria-label="${state.modal==='add'?'Add a title':'Title and profile details'}"><button class="close-modal" data-close aria-label="Close">×</button>${state.modal==='add'?addForm():state.modal==='profiles'?`<h2>Whose couch?</h2><div class="profile-tabs">${state.profiles.map(p=>`<button data-profile="${p.id}">${p.name}</button>`).join('')}</div>`:details(titleById(state.modal))}<p class="form-message" role="status">${h(state.message)}</p></section></div>`;}
+function render(){
+  document.body.style.overflow=state.modal?'hidden':'';
+  const focus=document.activeElement,focusId=focus?.id,selection=focus?.selectionStart;
+  if(!state.profile)app.innerHTML=welcome();
+  else app.innerHTML=`<div class="app-shell"><header class="topbar"><button class="brand" data-go="home"><span>🦥</span><strong>Couch Sloth<small>YOUR LITTLE WATCHING WORLD</small></strong></button><button class="profile-button" data-profiles><span>${name()[0]}</span>${h(name())} ⌄</button></header><main>${state.error?`<div class="connection-error" role="alert"><strong>We couldn’t reach your library.</strong><p>${h(state.error)}</p><button class="secondary" data-retry>Try again</button></div>`:''}${state.loading?'<div class="loading" role="status">Getting the couch ready…</div>':state.tab==='home'?home():state.tab==='coming'?coming():state.tab==='stuff'?stuff():pick()}<footer>One shared couch. Three separate lists.<span>${state.connected?'Synced with Supabase':'Connection unavailable'}</span></footer></main><button class="floating-add" data-add aria-label="Add a title">＋ <span>Add</span></button><nav class="bottom-nav" aria-label="Main navigation">${[['home','⌂','Home'],['coming','◷','Coming Soon'],['pick','✦','Sloth Pick'],['stuff','♡','My Stuff']].map(([id,symbol,label])=>`<button data-go="${id}" class="${state.tab===id?'active':''}" ${state.tab===id?'aria-current="page"':''}><span>${symbol}</span>${label}</button>`).join('')}</nav>${modal()}</div>`;
+  bind();if(focusId){const field=document.getElementById(focusId);field?.focus();if(selection!=null&&field?.type==='text')field.setSelectionRange(selection,selection);}setBusy(state.busy);
+}
+let returnFocus;
+function openModal(id){returnFocus=document.activeElement;state.modal=id;state.message='';if(id==='add')state.draft||={titleId:`custom-${crypto.randomUUID()}`,title:'',type:'Series',trackingIntent:'all',description:'',runtimeMinutes:'',posterUrl:'',moods:[]};render();document.querySelector('.modal input,.modal button')?.focus();}
+function closeModal(){if(state.busy)return;state.modal=null;state.message='';render();if(returnFocus?.isConnected)returnFocus.focus();else document.querySelector('[data-add]')?.focus();}
+function bindTitleButtons(root=document){root.querySelectorAll('[data-title]').forEach(b=>b.onclick=()=>openModal(b.dataset.title));}
+function bind(){
+  document.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>{state.profile=b.dataset.profile;state.pick.audience=[state.profile];state.viewing=null;state.modal=null;try{localStorage.setItem('couchsloth-profile',state.profile);}catch{/* device preference optional */}render();});
+  document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{state.tab=b.dataset.go;state.viewing=null;state.type='all';state.service='all';render();window.scrollTo({top:0,behavior:'smooth'});});
+  document.querySelector('[data-profiles]')?.addEventListener('click',()=>openModal('profiles'));
+  document.querySelector('[data-add]')?.addEventListener('click',()=>openModal('add'));
+  document.querySelector('[data-close]')?.addEventListener('click',closeModal);
+  document.querySelector('.modal-overlay')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+  document.querySelector('[data-retry]')?.addEventListener('click',()=>load());bindTitleButtons();
+  document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{state.viewing=b.dataset.view;render();});
+  document.querySelectorAll('[data-status]').forEach(b=>b.onclick=()=>{state.status=b.dataset.status;render();});
+  document.querySelector('#saved-search')?.addEventListener('input',e=>{state.search=e.target.value;render();});
+  document.querySelectorAll('[data-filter]').forEach(el=>el.onchange=()=>{state[el.dataset.filter]=el.value;render();});
+  document.querySelectorAll('[data-pick]').forEach(el=>el.onchange=()=>{state.pick[el.dataset.pick]=el.value;state.picked=null;state.pickMessage='';});
+  document.querySelectorAll('[data-audience]').forEach(el=>el.onchange=()=>{state.pick.audience=el.checked?[...state.pick.audience,el.dataset.audience]:state.pick.audience.filter(id=>id!==el.dataset.audience);state.picked=null;});
+  document.querySelectorAll('[data-pick-action]').forEach(b=>b.onclick=()=>{
+    if(!state.pick.audience.length){state.picked=null;state.pickMessage='Choose who’s watching first.';render();return;}
+    const candidates=chooseCandidates(state.titles,{...state.pick,chaos:b.dataset.pickAction==='chaos'});const alternatives=candidates.filter(t=>t.id!==state.picked);const pool=alternatives.length?alternatives:candidates;
+    state.picked=pool.length?pool[Math.floor(Math.random()*pool.length)].id:null;state.pickMessage=pool.length?'':'No matches this time. Try another mood, broaden the library selection, or use Full Chaos.';render();
   });
-}
-
-async function loadCatalog() {
-  try {
-    const response = await fetch("/.netlify/functions/catalog", { cache: "no-store" });
-    if (!response.ok) throw new Error(`Catalog failed: ${response.status}`);
-    const data = await response.json();
-    const custom = Array.isArray(data.shows) ? data.shows : [];
-    SHOWS = [...BASE_SHOWS, ...custom.map((show) => ({
-      ...show,
-      icon: show.type === "Movie" ? "🎬" : show.type === "Documentary" ? "🔎" : "📺",
-      theme: "custom",
-      format: `Family-added ${String(show.type || "pick").toLowerCase()}`,
-    }))];
-  } catch (error) {
-    console.warn(error);
-    SHOWS = [...BASE_SHOWS];
-  }
-  render();
-}
-
-async function loadVotes({ quiet = false } = {}) {
-  if (!quiet) state.syncing = true;
-  try {
-    const ids = encodeURIComponent(SHOWS.map((show) => show.id).join(","));
-    const response = await fetch(`/.netlify/functions/votes?showIds=${ids}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Sync failed: ${response.status}`);
-    const data = await response.json();
-    FAMILY.forEach((name) => {
-      state.votes[name] = data.votes?.[name] || {};
-    });
-    overlayPendingVotes();
-    state.syncError = false;
-  } catch (error) {
-    console.warn(error);
-    state.syncError = true;
-    overlayPendingVotes();
-  } finally {
-    state.syncing = false;
-    render();
-  }
-}
-
-async function flushPending() {
-  if (!state.pending.length) return;
-  const queue = [...state.pending];
-  for (const item of queue) {
-    try {
-      const response = await fetch("/.netlify/functions/votes", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(item),
-      });
-      if (!response.ok) throw new Error(`Vote save failed: ${response.status}`);
-      state.pending = state.pending.filter(
-        (pending) => !(pending.user === item.user && pending.showId === item.showId),
-      );
-      persistPending();
-      state.syncError = false;
-    } catch (error) {
-      console.warn(error);
-      state.syncError = true;
-      break;
-    }
-  }
-  render();
-}
-
-function queueVote(user, showId, vote) {
-  state.pending = state.pending.filter((item) => !(item.user === user && item.showId === showId));
-  state.pending.push({ user, showId, vote });
-  persistPending();
-  flushPending();
-}
-
-function getStats(show) {
-  const choices = FAMILY.map((name) => state.votes[name]?.[show.id]).filter(Boolean);
-  const yes = choices.filter((vote) => vote === "yes").length;
-  const maybe = choices.filter((vote) => vote === "maybe").length;
-  const no = choices.filter((vote) => vote === "no").length;
-  const score = yes * 3 + maybe - no * 3;
-  return { yes, maybe, no, total: choices.length, score };
-}
-
-function getRankedShows() {
-  return SHOWS.map((show, originalIndex) => ({ show, stats: getStats(show), originalIndex }))
-    .sort((a, b) => {
-      if (b.stats.score !== a.stats.score) return b.stats.score - a.stats.score;
-      if (b.stats.yes !== a.stats.yes) return b.stats.yes - a.stats.yes;
-      if (a.stats.no !== b.stats.no) return a.stats.no - b.stats.no;
-      return a.originalIndex - b.originalIndex;
-    });
-}
-
-function syncBadge() {
-  if (state.syncing) return '<span class="sync-badge syncing">↻ Syncing</span>';
-  if (state.syncError) return '<span class="sync-badge error">● Needs sync</span>';
-  if (state.pending.length) return '<span class="sync-badge syncing">↻ Saving</span>';
-  return '<span class="sync-badge good">● Shared</span>';
-}
-
-function profilePicker() {
-  return `
-    <main class="welcome-screen">
-      <section class="welcome-card">
-        <img src="${slothPopcorn}" class="welcome-sloth" alt="CouchSloth eating popcorn" />
-        <p class="eyebrow">FAMILY WATCH NIGHT</p>
-        <h1>CouchSloth</h1>
-        <p class="welcome-copy">Three humans. One couch. Far too many things everyone says they might watch someday.</p>
-        <h2>Who's voting?</h2>
-        <div class="profile-grid">
-          ${FAMILY.map((name) => `
-            <button class="profile-button" data-user="${name}">
-              <span class="profile-initial">${name[0]}</span>
-              <span>${name}</span>
-            </button>
-          `).join("")}
-        </div>
-        <p class="tiny-note">Your name stays on this phone, but everyone's votes and family-added picks are shared.</p>
-      </section>
-    </main>
-  `;
-}
-
-function appHeader() {
-  return `
-    <header class="topbar">
-      <div class="brand-lockup">
-        <img src="${slothPeek}" class="brand-sloth" alt="CouchSloth mascot" />
-        <div>
-          <div class="brand-name">CouchSloth</div>
-          <div class="brand-sub">${escapeHtml(state.user)} is voting ${syncBadge()}</div>
-        </div>
-      </div>
-      <div style="display:flex; gap:7px; align-items:center;">
-        <button class="add-title-button" data-action="open-add">+ Add</button>
-        <button class="switch-user" data-action="switch-user" aria-label="Switch family member">Switch</button>
-      </div>
-    </header>
-  `;
-}
-
-function artMarkup(show, extraClass = "") {
-  const image = show.image ? `<img src="${show.image}" class="show-poster" alt="${escapeHtml(show.title)} poster" />` : "";
-  return `
-    <div class="show-art ${show.image ? "has-poster" : ""} ${extraClass}">
-      ${image}
-      <div class="show-glow"></div>
-      <span class="show-icon">${show.icon}</span>
-      <span class="platform-pill">${escapeHtml(show.platform || "Family pick")}</span>
-    </div>
-  `;
-}
-
-function addBanner() {
-  return `
-    <div class="add-title-banner">
-      <div><strong>Something missing?</strong><small>Add a movie, series, or documentary for everyone to vote on.</small></div>
-      <button class="add-title-button" data-action="open-add">+ Add it</button>
-    </div>
-  `;
-}
-
-function voteCard(show, progress) {
-  return `
-    <section class="vote-stage">
-      ${addBanner()}
-      <div class="progress-row">
-        <span>${progress.done} voted</span>
-        <div class="progress-track"><span style="width:${progress.percent}%"></span></div>
-        <span>${progress.left} left</span>
-      </div>
-      <article class="show-card theme-${show.theme}" data-card-show="${show.id}">
-        ${artMarkup(show)}
-        <div class="show-info">
-          <p class="show-type">${escapeHtml(show.type)}${show.format ? ` · ${escapeHtml(show.format)}` : ""}</p>
-          <h2>${escapeHtml(show.title)}</h2>
-          <p>${escapeHtml(show.note)}</p>
-          ${show.addedBy ? `<p class="added-by">Added by ${escapeHtml(show.addedBy)}</p>` : ""}
-        </div>
-      </article>
-      <div class="vote-actions" aria-label="Vote on ${escapeHtml(show.title)}">
-        <button class="vote-button no" data-vote="no"><span>✕</span> No</button>
-        <button class="vote-button maybe" data-vote="maybe"><span>~</span> Maybe</button>
-        <button class="vote-button yes" data-vote="yes"><span>♥</span> Yes</button>
-      </div>
-      <p class="gesture-hint">Tap a vote and the card gets politely launched off the couch.</p>
-    </section>
-  `;
-}
-
-function reviewVotes() {
-  const userVotes = state.votes[state.user] || {};
-  return `
-    ${addBanner()}
-    <section class="done-panel">
-      <img src="${slothBlanket}" class="done-sloth" alt="CouchSloth relaxing under a blanket" />
-      <p class="eyebrow">BALLOT COMPLETE</p>
-      <h2>${escapeHtml(state.user)} has judged the television.</h2>
-      <p>Unless somebody adds another contender. Then democracy resumes.</p>
-      <button class="primary-button" data-tab-jump="picks">See the Top 5</button>
-    </section>
-    <section class="section-block">
-      <div class="section-heading"><div><p class="eyebrow">YOUR BALLOT</p><h3>Change your mind anytime</h3></div></div>
-      <div class="review-list">
-        ${SHOWS.map((show) => {
-          const current = userVotes[show.id];
-          return `
-            <div class="review-row">
-              <div class="review-title"><span>${show.icon}</span><div><strong>${escapeHtml(show.title)}</strong><small>${escapeHtml(show.type)} · ${escapeHtml(show.platform || "Family pick")}${show.addedBy ? ` · added by ${escapeHtml(show.addedBy)}` : ""}</small></div></div>
-              <div class="mini-votes">
-                ${["no", "maybe", "yes"].map((vote) => `<button class="mini-vote ${vote} ${current === vote ? "selected" : ""}" data-edit-show="${show.id}" data-edit-vote="${vote}">${voteLabels[vote]}</button>`).join("")}
-              </div>
-            </div>
-          `;
-        }).join("")}
-      </div>
-    </section>
-  `;
-}
-
-function voteTab() {
-  const userVotes = state.votes[state.user] || {};
-  const remaining = SHOWS.filter((show) => !userVotes[show.id]);
-  if (!remaining.length) return reviewVotes();
-  const done = SHOWS.length - remaining.length;
-  return voteCard(remaining[0], {
-    done,
-    left: remaining.length,
-    percent: Math.round((done / SHOWS.length) * 100),
-  });
-}
-
-function rankArt(show) {
-  if (show.image) return `<div class="rank-icon has-poster"><img class="rank-poster" src="${show.image}" alt="" /></div>`;
-  return `<div class="rank-icon theme-${show.theme}">${show.icon}</div>`;
-}
-
-function picksTab() {
-  const ranked = getRankedShows();
-  const topFive = ranked.slice(0, 5);
-  const totalVotes = FAMILY.reduce((sum, name) => sum + Object.keys(state.votes[name] || {}).length, 0);
-  return `
-    ${addBanner()}
-    <section class="hero-panel picks-hero">
-      <div><p class="eyebrow">THE COUCH HAS SPOKEN</p><h2>Tonight's Top 5</h2><p>${totalVotes} of ${FAMILY.length * SHOWS.length} family votes are in. Rankings update automatically.</p></div>
-      <img src="${slothPopcorn}" alt="CouchSloth with popcorn" />
-    </section>
-    <section class="top-five-list">
-      ${topFive.map(({ show, stats }, index) => {
-        const consensus = stats.yes === FAMILY.length;
-        return `
-          <article class="rank-card ${index === 0 ? "winner" : ""}">
-            <div class="rank-number">${index + 1}</div>
-            ${rankArt(show)}
-            <div class="rank-copy">
-              <div class="rank-platform">${escapeHtml(show.platform || "Family pick")} · ${escapeHtml(show.type)}${show.addedBy ? ` · ${escapeHtml(show.addedBy)}` : ""}</div>
-              <h3>${escapeHtml(show.title)}</h3>
-              <div class="tally"><span class="yes-dot">♥ ${stats.yes}</span><span class="maybe-dot">~ ${stats.maybe}</span><span class="no-dot">✕ ${stats.no}</span></div>
-            </div>
-            ${consensus ? '<span class="consensus-badge">ALL YES</span>' : ""}
-          </article>
-        `;
-      }).join("")}
-    </section>
-    <section class="picker-panel">
-      <p class="eyebrow">DECISION FATIGUE: DEFEATED</p>
-      <h3>Let the sloth pick one.</h3>
-      <p>We'll randomly choose from the current Top 5, because we've already done enough thinking.</p>
-      <button class="primary-button huge" data-action="pick-show">🎲 Pick Tonight's Watch</button>
-    </section>
-  `;
-}
-
-function familyVoteChip(vote) {
-  if (!vote) return '<span class="family-chip empty">—</span>';
-  const symbol = vote === "yes" ? "♥" : vote === "maybe" ? "~" : "✕";
-  return `<span class="family-chip ${vote}">${symbol} ${voteLabels[vote]}</span>`;
-}
-
-function familyTab() {
-  return `
-    ${addBanner()}
-    <section class="hero-panel family-hero">
-      <div><p class="eyebrow">THE HOUSEHOLD SCORECARD</p><h2>Who voted for what?</h2><p>No need to ask “wait, did you say maybe or no?” seventeen minutes later.</p></div>
-      <img src="${slothPeek}" alt="CouchSloth peeking over the couch" />
-    </section>
-    <section class="family-list">
-      ${SHOWS.map((show) => `
-        <article class="family-row">
-          <div class="family-show"><span>${show.icon}</span><div><strong>${escapeHtml(show.title)}</strong><small>${escapeHtml(show.type)} · ${escapeHtml(show.platform || "Family pick")}${show.addedBy ? ` · added by ${escapeHtml(show.addedBy)}` : ""}</small></div></div>
-          <div class="family-votes-grid">
-            ${FAMILY.map((name) => `<div class="family-person"><label>${name}</label>${familyVoteChip(state.votes[name]?.[show.id])}</div>`).join("")}
-          </div>
-        </article>
-      `).join("")}
-    </section>
-  `;
-}
-
-function navBar() {
-  const tabs = [["vote", "♥", "Vote"], ["picks", "🎲", "Top 5"], ["family", "👀", "Family"]];
-  return `
-    <nav class="bottom-nav" aria-label="CouchSloth navigation">
-      ${tabs.map(([id, icon, label]) => `<button class="nav-button ${state.tab === id ? "active" : ""}" data-tab="${id}"><span>${icon}</span>${label}</button>`).join("")}
-    </nav>
-  `;
-}
-
-function pickOverlay() {
-  if (!state.picking && !state.pickedShow) return "";
-  if (state.picking) {
-    return `
-      <div class="overlay" data-action="close-pick">
-        <div class="pick-modal shuffling" onclick="event.stopPropagation()">
-          <img src="${slothPopcorn}" alt="CouchSloth choosing" />
-          <p class="eyebrow">SHUFFLING THE TOP 5</p>
-          <h2 id="shuffle-title">Consulting the sloth...</h2>
-          <div class="shuffle-dots"><i></i><i></i><i></i></div>
-        </div>
-      </div>
-    `;
-  }
-  return `
-    <div class="overlay" data-action="close-pick">
-      <div class="pick-modal" onclick="event.stopPropagation()">
-        <div class="pick-confetti">✦ 🎬 ✦</div>
-        <img src="${slothPopcorn}" alt="CouchSloth with popcorn" />
-        <p class="eyebrow">THE SLOTH HAS DECIDED</p>
-        <h2>${escapeHtml(state.pickedShow.title)}</h2>
-        <p>${escapeHtml(state.pickedShow.platform || "Family pick")} · ${escapeHtml(state.pickedShow.type)}</p>
-        ${state.pickedShow.addedBy ? `<p class="added-by">Added by ${escapeHtml(state.pickedShow.addedBy)}</p>` : ""}
-        <div class="picked-icon theme-${state.pickedShow.theme}">${state.pickedShow.icon}</div>
-        <button class="primary-button" data-action="close-pick">Couch time 🍿</button>
-        <button class="text-button" data-action="pick-show">Nope, reroll it</button>
-      </div>
-    </div>
-  `;
-}
-
-function addOverlay() {
-  if (!state.addOpen || !state.user) return "";
-  return `
-    <div class="add-overlay" data-action="close-add">
-      <section class="add-modal" onclick="event.stopPropagation()">
-        <div class="add-modal-head">
-          <div><p class="eyebrow">ADD TO THE COUCH</p><h2>What should we watch?</h2><p>${escapeHtml(state.user)} is adding this one. Everyone will see it and vote on it.</p></div>
-          <button class="close-x" data-action="close-add" aria-label="Close">×</button>
-        </div>
-        <form class="add-form" id="add-show-form">
-          <label>Movie or show name
-            <input type="text" name="title" maxlength="120" autocomplete="off" placeholder="e.g. The Wild Robot" required />
-          </label>
-          <div>
-            <label style="margin-bottom:7px;">Category</label>
-            <div class="type-grid">
-              <label class="type-choice"><input type="radio" name="type" value="Series" required><span>📺 Series</span></label>
-              <label class="type-choice"><input type="radio" name="type" value="Movie" required><span>🎬 Movie</span></label>
-              <label class="type-choice"><input type="radio" name="type" value="Documentary" required><span>🔎 Documentary</span></label>
-            </div>
-          </div>
-          <label class="photo-pick">Have a poster or image? <small style="font-weight:500;color:var(--muted);">Optional. Choose one right from your phone's photos.</small>
-            <input type="file" name="image" id="show-image-input" accept="image/*" />
-            <img id="show-image-preview" class="photo-preview" alt="Selected poster preview" />
-          </label>
-          <p class="add-error" id="add-show-error"></p>
-          <button class="primary-button" type="submit" ${state.addSaving ? "disabled" : ""}>${state.addSaving ? "Adding to the couch…" : `Add it as ${escapeHtml(state.user)} 🍿`}</button>
-        </form>
-      </section>
-    </div>
-  `;
-}
-
-function render() {
-  if (!state.user) {
-    app.innerHTML = profilePicker();
-    bindEvents();
-    return;
-  }
-  const content = state.tab === "vote" ? voteTab() : state.tab === "picks" ? picksTab() : familyTab();
-  app.innerHTML = `
-    <div class="app-shell">
-      ${appHeader()}
-      <main class="main-content">${content}</main>
-      ${navBar()}
-      ${pickOverlay()}
-      ${addOverlay()}
-    </div>
-  `;
-  bindEvents();
-}
-
-function bindEvents() {
-  document.querySelectorAll("[data-user]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.user = button.dataset.user;
-      localStorage.setItem("couchsloth-user", state.user);
-      state.tab = "vote";
-      render();
-    });
-  });
-
-  document.querySelector('[data-action="switch-user"]')?.addEventListener("click", () => {
-    state.user = null;
-    state.addOpen = false;
-    localStorage.removeItem("couchsloth-user");
-    render();
-  });
-
-  document.querySelectorAll('[data-action="open-add"]').forEach((button) => {
-    button.addEventListener("click", () => {
-      state.addOpen = true;
-      render();
-    });
-  });
-
-  document.querySelectorAll('[data-action="close-add"]').forEach((element) => {
-    element.addEventListener("click", () => {
-      if (state.addSaving) return;
-      state.addOpen = false;
-      render();
-    });
-  });
-
-  document.querySelector("#show-image-input")?.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    const preview = document.querySelector("#show-image-preview");
-    if (!file || !preview) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      preview.src = reader.result;
-      preview.classList.add("visible");
-    };
-    reader.readAsDataURL(file);
-  });
-
-  document.querySelector("#add-show-form")?.addEventListener("submit", submitAddedShow);
-
-  document.querySelectorAll("[data-tab]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.tab = button.dataset.tab;
-      state.pickedShow = null;
-      render();
-    });
-  });
-
-  document.querySelector("[data-tab-jump]")?.addEventListener("click", (event) => {
-    state.tab = event.currentTarget.dataset.tabJump;
-    render();
-  });
-
-  document.querySelectorAll("[data-vote]").forEach((button) => {
-    button.addEventListener("click", () => castCurrentVote(button.dataset.vote));
-  });
-
-  document.querySelectorAll("[data-edit-show]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const showId = button.dataset.editShow;
-      const vote = button.dataset.editVote;
-      state.votes[state.user][showId] = vote;
-      queueVote(state.user, showId, vote);
-      render();
-    });
-  });
-
-  document.querySelectorAll('[data-action="pick-show"]').forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      runPicker();
-    });
-  });
-
-  document.querySelectorAll('[data-action="close-pick"]').forEach((element) => {
-    element.addEventListener("click", (event) => {
-      if (event.target.closest('[data-action="pick-show"]')) return;
-      state.picking = false;
-      state.pickedShow = null;
-      render();
+  document.querySelectorAll('[data-season]').forEach(b=>b.onclick=()=>save({action:'seasonProgress',titleId:state.modal,seasonId:b.dataset.season,watched:b.dataset.watched==='true'}));
+  document.querySelectorAll('[data-form]').forEach(form=>{
+    if(form.dataset.form==='add')form.addEventListener('input',()=>{const data=new FormData(form);state.draft={...state.draft,...Object.fromEntries(data),moods:data.getAll('moods')};const matches=state.draft.title?state.titles.filter(t=>t.title.toLowerCase().includes(state.draft.title.toLowerCase())).slice(0,5):[];const target=document.querySelector('#existing-matches');target.innerHTML=matchesMarkup(matches);bindTitleButtons(target);});
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();const data=Object.fromEntries(new FormData(form));
+      if(form.dataset.form==='add'){
+        const existing=state.titles.find(t=>t.title.trim().toLowerCase()===String(data.title).trim().toLowerCase()&&t.type===data.type);
+        if(existing){openModal(existing.id);state.message='This title is already here. Save it to your profile below.';render();return;}
+        if(await save({action:'add',...state.draft})){state.draft=null;state.modal=null;state.tab='stuff';state.status='watchlist';state.viewing=null;render();}
+      }else await save({action:form.dataset.form,...data,...(form.dataset.form==='metadata'?{moods:new FormData(form).getAll('moods')}:{})});
     });
   });
 }
-
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    if (!file) return resolve("");
-    if (!file.type.startsWith("image/")) return reject(new Error("Please choose an image file."));
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("I couldn't read that photo."));
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = () => reject(new Error("I couldn't open that photo."));
-      img.onload = () => {
-        const maxW = 900;
-        const maxH = 1300;
-        const scale = Math.min(1, maxW / img.width, maxH / img.height);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        let quality = 0.82;
-        let data = canvas.toDataURL("image/jpeg", quality);
-        while (data.length > 1_500_000 && quality > 0.46) {
-          quality -= 0.1;
-          data = canvas.toDataURL("image/jpeg", quality);
-        }
-        resolve(data);
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-async function submitAddedShow(event) {
-  event.preventDefault();
-  if (state.addSaving) return;
-  const form = event.currentTarget;
-  const error = document.querySelector("#add-show-error");
-  const data = new FormData(form);
-  const title = String(data.get("title") || "").trim();
-  const type = String(data.get("type") || "").trim();
-  const file = data.get("image");
-
-  if (!title || !["Series", "Movie", "Documentary"].includes(type)) {
-    if (error) error.textContent = "Give it a name and choose Series, Movie, or Documentary.";
-    return;
-  }
-
-  state.addSaving = true;
-  if (error) error.textContent = "";
-  const submit = form.querySelector('button[type="submit"]');
-  if (submit) {
-    submit.disabled = true;
-    submit.textContent = "Adding to the couch…";
-  }
-
-  try {
-    const image = file instanceof File && file.size ? await compressImage(file) : "";
-    const response = await fetch("/.netlify/functions/catalog", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title, type, addedBy: state.user, image }),
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "That one didn't save.");
-
-    state.addOpen = false;
-    state.addSaving = false;
-    await loadCatalog();
-    await loadVotes({ quiet: true });
-    state.tab = "vote";
-    render();
-  } catch (err) {
-    state.addSaving = false;
-    if (error) error.textContent = err.message || "That one didn't save. Try again.";
-    if (submit) {
-      submit.disabled = false;
-      submit.textContent = `Add it as ${state.user} 🍿`;
-    }
-  }
-}
-
-function castCurrentVote(vote) {
-  const userVotes = state.votes[state.user] || {};
-  const currentShow = SHOWS.find((show) => !userVotes[show.id]);
-  if (!currentShow) return;
-  const card = document.querySelector(".show-card");
-  document.querySelectorAll(".vote-button").forEach((button) => (button.disabled = true));
-  card?.classList.add(`launch-${vote}`);
-  window.setTimeout(() => {
-    state.votes[state.user][currentShow.id] = vote;
-    queueVote(state.user, currentShow.id, vote);
-    render();
-  }, 360);
-}
-
-function runPicker() {
-  const topFive = getRankedShows().slice(0, 5).map((item) => item.show);
-  if (!topFive.length) return;
-  state.pickedShow = null;
-  state.picking = true;
-  render();
-  let step = 0;
-  const shuffleTimer = window.setInterval(() => {
-    const title = document.querySelector("#shuffle-title");
-    if (!title) return;
-    title.textContent = topFive[step % topFive.length].title;
-    step += 1;
-  }, 130);
-  window.setTimeout(() => {
-    window.clearInterval(shuffleTimer);
-    state.picking = false;
-    state.pickedShow = topFive[Math.floor(Math.random() * topFive.length)];
-    render();
-  }, 1450);
-}
-
-window.addEventListener("focus", async () => {
-  await loadCatalog();
-  if (!state.pending.length) loadVotes({ quiet: true });
-  else flushPending();
+// Dialogs retain focus, typed drafts, and their last failed submission.
+// Background refresh never replaces an open form.
+document.addEventListener('keydown',e=>{
+  if(!state.modal)return;if(e.key==='Escape')closeModal();
+  if(e.key==='Tab'){const items=[...document.querySelectorAll('.modal button:not(:disabled),.modal input:not(:disabled),.modal select:not(:disabled),.modal textarea:not(:disabled),.modal summary')].filter(el=>el.getClientRects().length);const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}
 });
-
-render();
-(async () => {
-  await loadCatalog();
-  await loadVotes();
-})();
-
-window.setInterval(() => {
-  if (!state.pending.length && document.visibilityState === "visible") loadVotes({ quiet: true });
-}, 15000);
+window.addEventListener('focus',()=>{if(!state.modal)load(true);});
+window.addEventListener('online',()=>load(true));
+render();load();
