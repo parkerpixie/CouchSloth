@@ -9,13 +9,40 @@ export function displayDate(value) {
 }
 export function progressFor(title, id) { return title.watch_progress?.find(p=>p.profile_id===id) || null; }
 export function isAvailable(title, today=todayKey()) {
-  return title.streaming_availability?.some(a=>a.region==='US'&&a.status==='available'&&(!a.release_date||a.release_date<=today)) || false;
+  return title.streaming_availability?.some(a=>
+    a.region==='US'&&(
+      (a.status==='available'&&(!a.release_date||a.release_date<=today))||
+      (a.status==='upcoming'&&a.release_date&&a.release_date<=today)
+    )
+  ) || false;
 }
 export function releases(titles) {
-  return titles.flatMap(title=>[
-    ...(title.seasons||[]).filter(s=>s.release_date).map(s=>({title,date:s.release_date,label:`Season ${s.season_number}`,source:s.metadata_source,provider:null})),
-    ...(title.streaming_availability||[]).filter(a=>a.region==='US'&&a.release_date).map(a=>({title,date:a.release_date,label:a.provider,source:a.metadata_source,provider:a.provider})),
-  ]).sort((a,b)=>a.date.localeCompare(b.date)||a.title.title.localeCompare(b.title.title));
+  return titles.flatMap(title=>{
+    const byDate=new Map();
+    const event=date=>{
+      if(!byDate.has(date))byDate.set(date,{title,date,seasonLabel:null,provider:null,source:null});
+      return byDate.get(date);
+    };
+    for(const s of title.seasons||[]){
+      if(!s.release_date)continue;
+      const e=event(s.release_date);
+      e.seasonLabel=s.name||`Season ${s.season_number}`;
+      e.source=s.metadata_source||e.source;
+    }
+    for(const a of title.streaming_availability||[]){
+      if(a.region!=='US'||!a.release_date)continue;
+      const e=event(a.release_date);
+      e.provider=a.provider;
+      e.source=a.metadata_source||e.source;
+    }
+    return [...byDate.values()].map(e=>({
+      title:e.title,
+      date:e.date,
+      label:[e.seasonLabel,e.provider].filter(Boolean).join(' · '),
+      source:e.source,
+      provider:e.provider,
+    }));
+  }).sort((a,b)=>a.date.localeCompare(b.date)||a.title.title.localeCompare(b.title.title));
 }
 export function chooseCandidates(titles, options, today=todayKey()) {
   return titles.filter(t=>{
