@@ -310,3 +310,9 @@ export async function recordTmdbReview(titleId: string, status: 'review' | 'not_
     }),
   });
 }
+
+
+export async function checkTmdbConnection() {
+  const data = await tmdb('/configuration');
+  return Boolean(data?.images?.secure_base_url);
+}
