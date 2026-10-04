@@ -15,6 +15,8 @@ const profiles=[{id:'parker',name:'Parker'},{id:'blake',name:'Blake'},{id:'porte
 function storedProfile(){try{return localStorage.getItem('couchsloth-profile')||localStorage.getItem('couchsloth-user')?.toLowerCase();}catch{return null;}}
 const stored=storedProfile();
 let loadVersion=0;
+let artworkPollTimer=null;
+let artworkPollCount=0;
 const state={profile:profiles.some(p=>p.id===stored)?stored:null,profiles,titles:[],loading:true,error:'',connected:false,tab:'home',viewing:null,status:'watchlist',search:'',type:'all',service:'all',modal:null,draft:null,busy:false,message:'',picked:null,pickMessage:'',pick:{mood:'any',commitment:'any',pool:'library',audience:stored?[stored]:['parker']}};
 const app=document.querySelector('#app');
 const name=()=>state.profiles.find(p=>p.id===state.profile)?.name||'Parker';
@@ -30,9 +32,30 @@ async function load(quiet=false){
     const response=await fetch('/api/library',{cache:'no-store'});const result=await response.json();
     if(!response.ok)throw new Error(result.error||'The library could not load.');
     if(version!==loadVersion)return false;
-    state.titles=result.titles;state.profiles=profiles.map(p=>result.profiles.find(x=>x.id===p.id)||p);state.connected=true;state.error='';
+    state.titles=result.titles;state.profiles=profiles.map(p=>result.profiles.find(x=>x.id===p.id)||p);state.connected=true;state.error='';kickoffArtworkBackfill();
   }catch(error){if(version!==loadVersion)return false;state.error=error.message||'Could not connect. Please retry.';state.connected=false;}
   state.loading=false;if(!quiet||!state.modal)render();return state.connected;
+}
+function kickoffArtworkBackfill(){
+  const pending=state.titles.some(t=>(t.tmdb_match_status||'pending')==='pending'&&!t.tmdb_id);
+  if(!pending)return;
+  try{
+    const last=Number(localStorage.getItem('couchsloth-tmdb-backfill')||0);
+    if(Date.now()-last>30*60*1000){
+      localStorage.setItem('couchsloth-tmdb-backfill',String(Date.now()));
+      fetch('/api/tmdb-backfill',{method:'POST',keepalive:true}).catch(()=>{});
+    }
+  }catch{fetch('/api/tmdb-backfill',{method:'POST',keepalive:true}).catch(()=>{});}
+  if(!artworkPollTimer){
+    artworkPollCount=0;
+    const poll=()=>{artworkPollTimer=setTimeout(async()=>{
+      artworkPollTimer=null;artworkPollCount+=1;
+      await load(true);
+      const stillPending=state.titles.some(t=>(t.tmdb_match_status||'pending')==='pending'&&!t.tmdb_id);
+      if(stillPending&&artworkPollCount<12)poll();
+    },10000);};
+    poll();
+  }
 }
 function setBusy(busy){state.busy=busy;document.querySelectorAll('.modal button,.modal input,.modal textarea,.modal select').forEach(el=>el.disabled=busy);}
 async function save(data){
