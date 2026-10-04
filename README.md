@@ -11,7 +11,7 @@ A shared family watching library for Parker, Blake, and Porter. Voting has been 
 - Persistent + Add: existing-library search, manual additions, tracking intention, optional mood/runtime metadata.
 - Title details: save progress, record watched seasons, and manually record streaming availability/dates.
 
-The Fall 2026 master list is loaded in Supabase. TMDB artwork/metadata enrichment is implemented through `/api/tmdb`: exact/high-confidence matches save automatically, ambiguous matches are held for human review, and a scheduled sweep checks pending titles every 15 minutes. Netlify AI Gateway is used as an optional judgment layer when a deterministic match is not clear. Legacy service labels remain unconfirmed unless explicitly recorded as availability. No votes were imported.
+The Fall 2026 master list is loaded in Supabase. TMDB artwork/metadata enrichment is implemented through `/api/tmdb`: exact/high-confidence matches save automatically, ambiguous matches are held for human review, and pending titles are also enriched from normal library loads plus a scheduled maintenance sweep. Netlify AI Gateway is used as an optional judgment layer when a deterministic match is not clear. Legacy service labels remain unconfirmed unless explicitly recorded as availability. No votes were imported.
 
 ## Architecture and access
 
@@ -54,7 +54,7 @@ The [original Step 1 audit](docs/couch-sloth-2-step-1-audit.md) describes the re
 
 ## TMDB artwork automation
 
-Couch Sloth uses TMDB as the authoritative media-art and title-metadata source. New titles attempt an immediate match after they are saved. Existing pending titles are processed by the scheduled `tmdb-sync` Netlify Function every 15 minutes in small batches.
+Couch Sloth uses TMDB as the authoritative media-art and title-metadata source. New titles attempt an immediate match after they are saved. Existing pending titles are queued from normal library loads, with a scheduled Netlify Function as a maintenance fallback.
 
 - Strong deterministic matches are applied automatically.
 - Ambiguous matches can be evaluated by Netlify AI Gateway when its runtime variables are available.
