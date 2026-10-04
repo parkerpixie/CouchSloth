@@ -1,7 +1,6 @@
 import { ApiError, database, reply } from './_shared/database.mts';
 import { applyTmdbMatch, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './_shared/tmdb.mts';
 
-declare const Netlify: { env: { get(name: string): string | undefined } };
 
 function text(value: unknown, max = 120) {
   if (typeof value !== 'string') throw new ApiError('Invalid request.');
@@ -19,12 +18,6 @@ function titleId(value: unknown) {
 function requireSameOrigin(req: Request) {
   const origin = req.headers.get('origin');
   if (origin && origin !== new URL(req.url).origin) throw new ApiError('Please use TMDB from the Couch Sloth app.', 403);
-}
-
-function requireAdmin(req: Request) {
-  const expected = Netlify.env.get('COUCHSLOTH_ADMIN_KEY');
-  const provided = req.headers.get('x-couchsloth-admin');
-  if (!expected || !provided || provided !== expected) throw new ApiError('Not authorized.', 403);
 }
 
 function parseCandidate(body: any) {
@@ -79,24 +72,6 @@ export default async (req: Request) => {
     let body: any;
     try { body = JSON.parse(raw); } catch { throw new ApiError('Invalid request.'); }
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ApiError('Invalid request.');
-
-    if (body.action === 'backfill') {
-      requireAdmin(req);
-      const requested = Number(body.limit ?? 6);
-      const limit = Number.isInteger(requested) ? Math.max(1, Math.min(10, requested)) : 6;
-      const rows = await database(
-        `titles?tmdb_match_status=eq.pending&select=id,title,type,description,legacy_platform,tmdb_id,tmdb_media_type&order=created_at.asc&limit=${limit}`
-      );
-      const results = [];
-      for (const row of rows) {
-        try {
-          results.push({ titleId: row.id, title: row.title, ...(await autoMatch(row.id)) });
-        } catch (error) {
-          results.push({ titleId: row.id, title: row.title, status: 'error' });
-        }
-      }
-      return reply({ ok: true, processed: results.length, results });
-    }
 
     requireSameOrigin(req);
     const id = titleId(body.titleId);
