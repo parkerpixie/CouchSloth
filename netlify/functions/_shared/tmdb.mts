@@ -32,20 +32,22 @@ export type TmdbCandidate = {
   score: number;
 };
 
-function tmdbToken() {
+function tmdbAuth() {
   const token = Netlify.env.get('TMDB_ACCESS_TOKEN');
-  if (!token) throw new ApiError('TMDB is not connected yet. Add TMDB_ACCESS_TOKEN in Netlify first.', 503, 'TMDB_SETUP_REQUIRED');
-  return token;
+  const apiKey = Netlify.env.get('TMDB_API_KEY');
+  if (!token && !apiKey) throw new ApiError('TMDB is not connected yet. Add TMDB_ACCESS_TOKEN or TMDB_API_KEY in Netlify first.', 503, 'TMDB_SETUP_REQUIRED');
+  return { token, apiKey };
 }
 
 async function tmdb(path: string, params: Record<string, string> = {}) {
   const url = new URL(`${TMDB_API}${path}`);
+  const { token, apiKey } = tmdbAuth();
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  if (apiKey) url.searchParams.set('api_key', apiKey);
+  const headers: Record<string,string> = { accept: 'application/json' };
+  if (token) headers.authorization = `Bearer ${token}`;
   const response = await fetch(url, {
-    headers: {
-      accept: 'application/json',
-      authorization: `Bearer ${tmdbToken()}`,
-    },
+    headers,
     signal: AbortSignal.timeout(15000),
   });
   if (!response.ok) {
