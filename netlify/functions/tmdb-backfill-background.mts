@@ -72,3 +72,7 @@ export default async (req: Request) => {
     await setBackfillIdle();
   }
 };
+
+export const config = {
+  path: '/api/tmdb-backfill',
+};
