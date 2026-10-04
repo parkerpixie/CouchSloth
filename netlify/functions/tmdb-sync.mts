@@ -10,15 +10,10 @@ export default async () => {
   }
 
   const rows = await database(
-    'titles?tmdb_match_status=eq.pending&select=id&order=created_at.asc&limit=5'
+    'titles?tmdb_match_status=eq.pending&select=id&order=created_at.asc&limit=15'
   );
 
-  let matched = 0;
-  let review = 0;
-  let notFound = 0;
-  let errors = 0;
-
-  for (const row of rows) {
+  const results = await Promise.all(rows.map(async (row: { id: string }) => {
     try {
       const title = await getTitle(row.id);
       const candidates = await searchTmdb(title);
@@ -26,29 +21,30 @@ export default async () => {
 
       if (recommendation.candidate && recommendation.confidence >= 0.88) {
         await applyTmdbMatch(row.id, recommendation.candidate);
-        matched += 1;
-      } else if (candidates.length) {
-        await recordTmdbReview(row.id, 'review');
-        review += 1;
-      } else {
-        await recordTmdbReview(row.id, 'not_found');
-        notFound += 1;
+        return 'matched';
       }
+      if (candidates.length) {
+        await recordTmdbReview(row.id, 'review');
+        return 'review';
+      }
+      await recordTmdbReview(row.id, 'not_found');
+      return 'not_found';
     } catch {
-      errors += 1;
+      return 'error';
     }
-  }
+  }));
 
+  const count = (status: string) => results.filter(result => result === status).length;
   console.log(JSON.stringify({
     task: 'couch-sloth-tmdb-sync',
     processed: rows.length,
-    matched,
-    review,
-    notFound,
-    errors,
+    matched: count('matched'),
+    review: count('review'),
+    notFound: count('not_found'),
+    errors: count('error'),
   }));
 };
 
 export const config = {
-  schedule: '*/15 * * * *',
+  schedule: '* * * * *',
 };
