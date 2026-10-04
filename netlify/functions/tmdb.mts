@@ -1,5 +1,5 @@
 import { ApiError, database, reply } from './_shared/database.mts';
-import { applyTmdbMatch, getTitle, recommendTmdb, searchTmdb } from './_shared/tmdb.mts';
+import { applyTmdbMatch, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './_shared/tmdb.mts';
 
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
@@ -55,8 +55,10 @@ async function autoMatch(id: string) {
     };
   }
 
+  const status = candidates.length ? 'review' : 'not_found';
+  await recordTmdbReview(id, status);
   return {
-    status: candidates.length ? 'review' : 'not_found',
+    status,
     recommendation: {
       tmdbId: null,
       mediaType: null,
@@ -83,7 +85,7 @@ export default async (req: Request) => {
       const requested = Number(body.limit ?? 6);
       const limit = Number.isInteger(requested) ? Math.max(1, Math.min(10, requested)) : 6;
       const rows = await database(
-        `titles?tmdb_id=is.null&select=id,title,type,description,legacy_platform,tmdb_id,tmdb_media_type&order=created_at.asc&limit=${limit}`
+        `titles?tmdb_match_status=eq.pending&select=id,title,type,description,legacy_platform,tmdb_id,tmdb_media_type&order=created_at.asc&limit=${limit}`
       );
       const results = [];
       for (const row of rows) {
