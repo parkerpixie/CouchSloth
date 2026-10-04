@@ -3,7 +3,8 @@ import { ApiError, database } from './database.mts';
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
 const TMDB_API = 'https://api.themoviedb.org/3';
-const TMDB_IMAGE = 'https://image.tmdb.org/t/p/w500';
+const TMDB_POSTER = 'https://image.tmdb.org/t/p/w500';
+const TMDB_BACKDROP = 'https://image.tmdb.org/t/p/w780';
 
 type TitleRow = {
   id: string;
@@ -13,6 +14,8 @@ type TitleRow = {
   legacy_platform?: string | null;
   tmdb_id?: number | null;
   tmdb_media_type?: 'movie' | 'tv' | null;
+  tmdb_match_status?: 'pending' | 'matched' | 'review' | 'not_found';
+  tmdb_checked_at?: string | null;
 };
 
 export type TmdbCandidate = {
@@ -112,7 +115,7 @@ function scoreCandidate(title: TitleRow, candidate: Omit<TmdbCandidate, 'score'>
 
 export async function getTitle(titleId: string): Promise<TitleRow> {
   const rows = await database(
-    `titles?id=eq.${encodeURIComponent(titleId)}&select=id,title,type,description,legacy_platform,tmdb_id,tmdb_media_type`
+    `titles?id=eq.${encodeURIComponent(titleId)}&select=id,title,type,description,legacy_platform,tmdb_id,tmdb_media_type,tmdb_match_status,tmdb_checked_at`
   );
   if (!rows.length) throw new ApiError('That title could not be found.', 404, 'NOT_FOUND');
   return rows[0];
@@ -142,8 +145,8 @@ export async function searchTmdb(title: TitleRow): Promise<TmdbCandidate[]> {
         originalTitle: originalTitle(mediaType, item),
         year: /^\d{4}/.test(date) ? date.slice(0, 4) : null,
         overview: String(item.overview ?? ''),
-        posterUrl: item.poster_path ? `${TMDB_IMAGE}${item.poster_path}` : null,
-        backdropUrl: item.backdrop_path ? `${TMDB_IMAGE}${item.backdrop_path}` : null,
+        posterUrl: item.poster_path ? `${TMDB_POSTER}${item.poster_path}` : null,
+        backdropUrl: item.backdrop_path ? `${TMDB_BACKDROP}${item.backdrop_path}` : null,
         genreIds: Array.isArray(item.genre_ids) ? item.genre_ids.map(Number) : [],
         popularity: Number(item.popularity ?? 0),
       };
@@ -259,7 +262,8 @@ export async function applyTmdbMatch(titleId: string, candidate: Pick<TmdbCandid
     language: 'en-US',
   });
 
-  const posterUrl = details.poster_path ? `${TMDB_IMAGE}${details.poster_path}` : '';
+  const posterUrl = details.poster_path ? `${TMDB_POSTER}${details.poster_path}` : '';
+  const backdropUrl = details.backdrop_path ? `${TMDB_BACKDROP}${details.backdrop_path}` : '';
   const runtime =
     candidate.mediaType === 'movie'
       ? Number(details.runtime ?? 0)
@@ -269,7 +273,10 @@ export async function applyTmdbMatch(titleId: string, candidate: Pick<TmdbCandid
     tmdb_id: candidate.id,
     tmdb_media_type: candidate.mediaType,
     metadata_source: 'tmdb',
+    tmdb_match_status: 'matched',
+    tmdb_checked_at: new Date().toISOString(),
   };
+  if (backdropUrl) patch.backdrop_url = backdropUrl;
   if (posterUrl) patch.poster_url = posterUrl;
   if (runtime > 0 && runtime <= 600) patch.runtime_minutes = runtime;
   if ((!title.description || title.description.trim().length < 12) && details.overview) {
@@ -286,6 +293,18 @@ export async function applyTmdbMatch(titleId: string, candidate: Pick<TmdbCandid
     tmdbId: candidate.id,
     mediaType: candidate.mediaType,
     posterUrl: posterUrl || null,
+    backdropUrl: backdropUrl || null,
     runtimeMinutes: runtime || null,
   };
+}
+
+
+export async function recordTmdbReview(titleId: string, status: 'review' | 'not_found') {
+  await database(`titles?id=eq.${encodeURIComponent(titleId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      tmdb_match_status: status,
+      tmdb_checked_at: new Date().toISOString(),
+    }),
+  });
 }
