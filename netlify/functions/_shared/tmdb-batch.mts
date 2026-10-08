@@ -1,5 +1,6 @@
 import { database } from './database.mts';
-import { applyTmdbMatch, checkTmdbConnection, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './tmdb.mts';
+import { checkTmdbConnection, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './tmdb.mts';
+import { enrichTmdbMatch } from './tmdb-enrich.mts';
 
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
@@ -76,7 +77,7 @@ export async function runTmdbBatch(limit = 8) {
         const recommendation = await recommendTmdb(title, candidates);
 
         if (recommendation.candidate && recommendation.confidence >= 0.88) {
-          await applyTmdbMatch(row.id, recommendation.candidate);
+          await enrichTmdbMatch(row.id, recommendation.candidate.id, recommendation.candidate.mediaType);
           return 'matched';
         }
         if (candidates.length) {
