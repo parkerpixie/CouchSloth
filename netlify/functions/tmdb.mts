@@ -1,6 +1,6 @@
 import { ApiError, database, reply } from './_shared/database.mts';
-import { applyTmdbMatch, checkTmdbConnection, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './_shared/tmdb.mts';
-
+import { checkTmdbConnection, getTitle, recommendTmdb, recordTmdbReview, searchTmdb } from './_shared/tmdb.mts';
+import { enrichTmdbMatch } from './_shared/tmdb-enrich.mts';
 
 function text(value: unknown, max = 120) {
   if (typeof value !== 'string') throw new ApiError('Invalid request.');
@@ -33,7 +33,7 @@ async function autoMatch(id: string) {
   const recommendation = await recommendTmdb(title, candidates);
 
   if (recommendation.candidate && recommendation.confidence >= 0.88) {
-    const applied = await applyTmdbMatch(id, recommendation.candidate);
+    const applied = await enrichTmdbMatch(id, recommendation.candidate.id, recommendation.candidate.mediaType);
     return {
       status: 'applied',
       recommendation: {
@@ -103,7 +103,7 @@ export default async (req: Request) => {
 
     if (body.action === 'apply') {
       const candidate = parseCandidate(body);
-      return reply({ ok: true, status: 'applied', applied: await applyTmdbMatch(id, candidate) });
+      return reply({ ok: true, status: 'applied', applied: await enrichTmdbMatch(id, candidate.id, candidate.mediaType) });
     }
 
     throw new ApiError('Unknown TMDB action.');
