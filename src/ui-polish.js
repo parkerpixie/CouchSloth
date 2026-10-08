@@ -195,6 +195,11 @@ refreshLibrary().then(decorate);
 window.addEventListener('focus', () => refreshLibrary().then(decorate));
 window.addEventListener('online', () => refreshLibrary().then(decorate));
 
+// A page load can kick off TMDB enrichment in the background. Re-read the
+// library shortly afterward so newly enriched cards appear without another reload.
+window.setTimeout(() => refreshLibrary().then(decorate), 6500);
+window.setTimeout(() => refreshLibrary().then(decorate), 15000);
+
 document.addEventListener('click', event => {
   const target = event.target.closest?.('[data-tmdb-apply],[data-tmdb-auto]');
   if (!target) return;
