@@ -4,6 +4,13 @@ import { enrichTmdbMatch } from './tmdb-enrich.mts';
 
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
+type BatchRow = {
+  id: string;
+  tmdb_id?: number | null;
+  tmdb_media_type?: 'movie' | 'tv' | null;
+  tmdb_match_status?: 'pending' | 'matched' | 'review' | 'not_found';
+};
+
 async function setState(message: string, running = false) {
   try {
     await database('automation_state?id=eq.tmdb_sync', {
@@ -38,7 +45,7 @@ async function setBackfillIdle() {
 export async function runTmdbBatch(limit = 8) {
   if (!Netlify.env.get('TMDB_ACCESS_TOKEN') && !Netlify.env.get('TMDB_API_KEY')) {
     await setState('TMDB enrichment skipped: no TMDB credential is configured.');
-    return { processed: 0, matched: 0, review: 0, notFound: 0, errors: 0, skipped: 'missing_credential' };
+    return { processed: 0, matched: 0, enriched: 0, review: 0, notFound: 0, errors: 0, skipped: 'missing_credential' };
   }
 
   let claimed = false;
@@ -46,10 +53,10 @@ export async function runTmdbBatch(limit = 8) {
     claimed = await database('rpc/claim_tmdb_backfill', { method: 'POST', body: '{}' }) === true;
   } catch (error) {
     await setState(`TMDB enrichment lock failed: ${error instanceof Error ? error.message : 'unknown error'}`);
-    return { processed: 0, matched: 0, review: 0, notFound: 0, errors: 1, skipped: 'lock_error' };
+    return { processed: 0, matched: 0, enriched: 0, review: 0, notFound: 0, errors: 1, skipped: 'lock_error' };
   }
 
-  if (!claimed) return { processed: 0, matched: 0, review: 0, notFound: 0, errors: 0, skipped: 'already_running' };
+  if (!claimed) return { processed: 0, matched: 0, enriched: 0, review: 0, notFound: 0, errors: 0, skipped: 'already_running' };
 
   await setState('TMDB enrichment started.', true);
 
@@ -58,20 +65,25 @@ export async function runTmdbBatch(limit = 8) {
       const connected = await checkTmdbConnection();
       if (!connected) {
         await setState('TMDB health check returned an unexpected response.');
-        return { processed: 0, matched: 0, review: 0, notFound: 0, errors: 1, skipped: 'health_check_failed' };
+        return { processed: 0, matched: 0, enriched: 0, review: 0, notFound: 0, errors: 1, skipped: 'health_check_failed' };
       }
     } catch (error) {
       await setState(`TMDB connection failed: ${error instanceof Error ? error.message : 'unknown error'}`);
-      return { processed: 0, matched: 0, review: 0, notFound: 0, errors: 1, skipped: 'tmdb_connection_failed' };
+      return { processed: 0, matched: 0, enriched: 0, review: 0, notFound: 0, errors: 1, skipped: 'tmdb_connection_failed' };
     }
 
     const safeLimit = Math.max(1, Math.min(60, Math.trunc(limit) || 8));
-    const rows = await database(
-      `titles?tmdb_match_status=eq.pending&select=id&order=created_at.asc&limit=${safeLimit}`
+    const rows: BatchRow[] = await database(
+      `titles?or=(tmdb_match_status.eq.pending,and(tmdb_match_status.eq.matched,official_overview.is.null))&select=id,tmdb_id,tmdb_media_type,tmdb_match_status&order=created_at.asc&limit=${safeLimit}`
     );
 
-    const results = await Promise.all(rows.map(async (row: { id: string }) => {
+    const results = await Promise.all(rows.map(async row => {
       try {
+        if (row.tmdb_match_status === 'matched' && row.tmdb_id && row.tmdb_media_type) {
+          await enrichTmdbMatch(row.id, Number(row.tmdb_id), row.tmdb_media_type);
+          return 'enriched';
+        }
+
         const title = await getTitle(row.id);
         const candidates = await searchTmdb(title);
         const recommendation = await recommendTmdb(title, candidates);
@@ -95,12 +107,13 @@ export async function runTmdbBatch(limit = 8) {
     const summary = {
       processed: rows.length,
       matched: count('matched'),
+      enriched: count('enriched'),
       review: count('review'),
       notFound: count('not_found'),
       errors: count('error'),
     };
 
-    await setState(`Processed ${summary.processed}: ${summary.matched} matched, ${summary.review} review, ${summary.notFound} not found, ${summary.errors} errors.`);
+    await setState(`Processed ${summary.processed}: ${summary.matched} matched, ${summary.enriched} enriched, ${summary.review} review, ${summary.notFound} not found, ${summary.errors} errors.`);
     return summary;
   } finally {
     await setBackfillIdle();
