@@ -58,9 +58,11 @@ export default async (req: Request, context: any) => {
         if (page.length < 500) break;
         offset += 500;
       }
-      if (titles.some((title: any) => (title.tmdb_match_status || 'pending') === 'pending' && !title.tmdb_id)) {
-        context.waitUntil(runTmdbBatch(12));
-      }
+      const needsTmdbWork = titles.some((title: any) =>
+        ((title.tmdb_match_status || 'pending') === 'pending' && !title.tmdb_id) ||
+        (title.tmdb_match_status === 'matched' && title.tmdb_id && title.tmdb_media_type && !title.official_overview)
+      );
+      if (needsTmdbWork) context.waitUntil(runTmdbBatch(12));
       return reply({ profiles, titles, dataSource: 'supabase' });
     }
     if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405);
